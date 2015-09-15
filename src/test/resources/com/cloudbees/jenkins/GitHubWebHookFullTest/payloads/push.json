@@ -25,7 +25,9 @@
                 "username": "lanwen"
             },
             "added": [],
-            "removed": [],
+            "removed": [
+                "app/test-workflow-job/README.md"
+            ],
             "modified": [
                 "README.md"
             ]

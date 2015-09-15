@@ -11,7 +11,7 @@
 
     <groupId>com.coravy.hudson.plugins.github</groupId>
     <artifactId>github</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
+    <version>1.14.0-OSL-MONO-2</version>
     <packaging>hpi</packaging>
 
     <name>GitHub plugin</name>

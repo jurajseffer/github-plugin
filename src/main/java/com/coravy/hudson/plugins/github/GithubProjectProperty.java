@@ -30,9 +30,15 @@ public final class GithubProjectProperty extends JobProperty<AbstractProject<?, 
      */
     private String projectUrl;
 
+    /**
+     * Path within a monolithic repository, can be empty
+     */
+    private String repositoryPath;
+
     @DataBoundConstructor
-    public GithubProjectProperty(String projectUrl) {
+    public GithubProjectProperty(String projectUrl, String repositoryPath) {
         this.projectUrl = new GithubUrl(projectUrl).baseUrl();
+        this.repositoryPath = repositoryPath;
     }
 
     /**
@@ -40,6 +46,10 @@ public final class GithubProjectProperty extends JobProperty<AbstractProject<?, 
      */
     public GithubUrl getProjectUrl() {
         return new GithubUrl(projectUrl);
+    }
+
+    public String getRepositoryPath() {
+        return repositoryPath;
     }
 
     @Override
