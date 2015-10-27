@@ -5,11 +5,13 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubRepositoryNameContributor;
 import com.cloudbees.jenkins.GitHubTrigger;
 import com.cloudbees.jenkins.GitHubWebHook;
+import com.coravy.hudson.plugins.github.GithubProjectProperty;
 import hudson.Extension;
 import hudson.model.Job;
 import hudson.security.ACL;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import net.sf.json.JSONArray;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.kohsuke.github.GHEvent;
 import org.slf4j.Logger;
@@ -56,6 +58,23 @@ public class DefaultPushGHEventSubscriber extends GHEventsSubscriber {
         return immutableEnumSet(PUSH);
     }
 
+    private boolean checkCommitPaths(String repositoryPath, JSONArray commits) {
+        for (int i = 0, size = commits.size(); i < size; i++) {
+            String[] types = {"modified", "added", "removed"};
+            for (String s: types) {
+                JSONObject commit = JSONObject.fromObject(commits.get(i));
+                JSONArray paths = commit.getJSONArray(s);
+                for (int j = 0, sizeChild = paths.size(); j < sizeChild; j++) {
+                    if (paths.getString(j).startsWith(repositoryPath)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Calls {@link GitHubPushTrigger} in all projects to handle this hook
      *
@@ -64,7 +83,7 @@ public class DefaultPushGHEventSubscriber extends GHEventsSubscriber {
      */
     @Override
     protected void onEvent(GHEvent event, String payload) {
-        JSONObject json = JSONObject.fromObject(payload);
+        final JSONObject json = JSONObject.fromObject(payload);
         // something like 'https://github.com/bar/foo'
         String repoUrl = json.getJSONObject("repository").getString("url");
         final String pusherName = json.getJSONObject("pusher").getString("name");
@@ -89,11 +108,23 @@ public class DefaultPushGHEventSubscriber extends GHEventsSubscriber {
                         if (trigger != null) {
                             LOGGER.debug("Considering to poke {}", job.getFullDisplayName());
                             if (GitHubRepositoryNameContributor.parseAssociatedNames(job).contains(changedRepository)) {
-                                LOGGER.info("Poked {}", job.getFullDisplayName());
-                                trigger.onPost(pusherName);
+                                final JSONArray commits = json.getJSONArray("commits");
+                                if (job.getProperty(GithubProjectProperty.class) == null
+                                    || (job.getProperty(GithubProjectProperty.class) != null
+                                        && (job.getProperty(GithubProjectProperty.class).getRepositoryPath() == null
+                                        || job.getProperty(GithubProjectProperty.class).getRepositoryPath() == "")
+                                    )
+                                    || checkCommitPaths(job.getProperty(GithubProjectProperty.class)
+                                        .getRepositoryPath(), commits)) {
+                                    LOGGER.info("Poked {}", job.getFullDisplayName());
+                                    trigger.onPost(pusherName);
+                                } else {
+                                    LOGGER.debug("Skipped {} because job name wasn't found in paths.",
+                                        job.getFullDisplayName());
+                                }
                             } else {
                                 LOGGER.debug("Skipped {} because it doesn't have a matching repository.",
-                                        job.getFullDisplayName());
+                                    job.getFullDisplayName());
                             }
                         }
                     }

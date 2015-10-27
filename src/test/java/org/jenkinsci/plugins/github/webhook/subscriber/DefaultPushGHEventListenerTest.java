@@ -46,7 +46,7 @@ public class DefaultPushGHEventListenerTest {
     public void shouldParsePushPayload() throws Exception {
         GitHubPushTrigger trigger = mock(GitHubPushTrigger.class);
 
-        FreeStyleProject prj = jenkins.createFreeStyleProject();
+        FreeStyleProject prj = jenkins.createFreeStyleProject("test-job");
         prj.addTrigger(trigger);
         prj.setScm(GIT_SCM_FROM_RESOURCE);
 

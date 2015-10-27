@@ -3,4 +3,8 @@
     help="/plugin/github/help-global.html">
     <f:textbox name="github.projectUrl" value="${instance.projectUrl}" />
   </f:entry>
+  <f:entry title="Monolithic repository mode: path within a Github repository (leave blank to disable)"
+    help="/plugin/github/help-monolithic.html">
+    <f:textbox name="github.repositoryPath" value="${instance.repositoryPath}" />
+  </f:entry>
 </j:jelly>

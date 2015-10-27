@@ -25,7 +25,9 @@
                 "username": "lanwen"
             },
             "added": [],
-            "removed": [],
+            "removed": [
+                "app/test-job/README.md"
+            ],
             "modified": [
                 "README.md"
             ]
