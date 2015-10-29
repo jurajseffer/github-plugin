@@ -18,6 +18,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.ArrayList;
+
 /**
  * @author lanwen (Merkushev Kirill)
  */
@@ -53,7 +55,7 @@ public class DefaultPushGHEventListenerTest {
         new DefaultPushGHEventSubscriber()
                 .onEvent(GHEvent.PUSH, classpath("payloads/push.json"));
 
-        verify(trigger).onPost(TRIGGERED_BY_USER_FROM_RESOURCE);
+        verify(trigger).onPost(TRIGGERED_BY_USER_FROM_RESOURCE, new ArrayList());
     }
 
     @Test
@@ -70,7 +72,7 @@ public class DefaultPushGHEventListenerTest {
         new DefaultPushGHEventSubscriber()
                 .onEvent(GHEvent.PUSH, classpath("payloads/push.json"));
 
-        verify(trigger).onPost(TRIGGERED_BY_USER_FROM_RESOURCE);
+        verify(trigger).onPost(TRIGGERED_BY_USER_FROM_RESOURCE, new ArrayList());
     }
 
     @Test
@@ -85,6 +87,6 @@ public class DefaultPushGHEventListenerTest {
         new DefaultPushGHEventSubscriber()
                 .onEvent(GHEvent.PUSH, classpath("payloads/push.json"));
 
-        verify(trigger, never()).onPost(TRIGGERED_BY_USER_FROM_RESOURCE);
+        verify(trigger, never()).onPost(TRIGGERED_BY_USER_FROM_RESOURCE, new ArrayList());
     }
 }

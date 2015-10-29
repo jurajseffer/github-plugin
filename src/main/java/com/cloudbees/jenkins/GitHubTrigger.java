@@ -9,6 +9,7 @@ import jenkins.model.ParameterizedJobMixIn;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.ArrayList;
 
 /**
  * Optional interface that can be implemented by {@link Trigger} that watches out for a change in GitHub
@@ -22,7 +23,7 @@ public interface GitHubTrigger {
     void onPost();
 
     // TODO: document me
-    void onPost(String triggeredByUser);
+    void onPost(String triggeredByUser, ArrayList values);
 
     /**
      * Obtains the list of the repositories that this trigger is looking at.

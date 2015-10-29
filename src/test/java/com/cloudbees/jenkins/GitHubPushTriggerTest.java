@@ -13,6 +13,7 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static com.cloudbees.jenkins.GitHubWebHookFullTest.classpath;
@@ -49,7 +50,7 @@ public class GitHubPushTriggerTest {
         buildData.buildsByBranchName = new HashMap<String, Build>();
         buildData.getLastBuiltRevision().setSha1(ObjectId.zeroId());
 
-        trigger.onPost(TRIGGERED_BY_USER_FROM_RESOURCE);
+        trigger.onPost(TRIGGERED_BY_USER_FROM_RESOURCE, new ArrayList());
 
         TimeUnit.SECONDS.sleep(job.getQuietPeriod());
         jRule.waitUntilNoActivity();

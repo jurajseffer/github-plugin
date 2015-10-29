@@ -9,11 +9,12 @@ import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.Job;
+import hudson.model.ParametersAction;
 import hudson.model.Project;
+import hudson.model.queue.QueueTaskFuture;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.SequentialExecutionQueue;
-import hudson.util.StreamTaskListener;
 import jenkins.model.Jenkins;
 import jenkins.model.Jenkins.MasterComputer;
 import jenkins.model.ParameterizedJobMixIn;
@@ -29,15 +30,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.DateFormat;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.jenkinsci.plugins.github.util.JobInfoHelpers.asParameterizedJobMixIn;
@@ -58,46 +57,17 @@ public class GitHubPushTrigger extends Trigger<Job<?, ?>> implements GitHubTrigg
      */
     @Deprecated
     public void onPost() {
-        onPost("");
+        onPost("", new ArrayList());
     }
 
     /**
      * Called when a POST is made.
      */
-    public void onPost(String triggeredByUser) {
+    public void onPost(String triggeredByUser, final ArrayList values) {
         final String pushBy = triggeredByUser;
         getDescriptor().queue.execute(new Runnable() {
             private boolean runPolling() {
-                try {
-                    StreamTaskListener listener = new StreamTaskListener(getLogFile());
-
-                    try {
-                        PrintStream logger = listener.getLogger();
-                        long start = System.currentTimeMillis();
-                        logger.println("Started on " + DateFormat.getDateTimeInstance().format(new Date()));
-                        boolean result = SCMTriggerItems.asSCMTriggerItem(job).poll(listener).hasChanges();
-                        logger.println("Done. Took " + Util.getTimeSpanString(System.currentTimeMillis() - start));
-                        if (result) {
-                            logger.println("Changes found");
-                        } else {
-                            logger.println("No changes");
-                        }
-                        return result;
-                    } catch (Error e) {
-                        e.printStackTrace(listener.error("Failed to record SCM polling"));
-                        LOGGER.error("Failed to record SCM polling", e);
-                        throw e;
-                    } catch (RuntimeException e) {
-                        e.printStackTrace(listener.error("Failed to record SCM polling"));
-                        LOGGER.error("Failed to record SCM polling", e);
-                        throw e;
-                    } finally {
-                        listener.close();
-                    }
-                } catch (IOException e) {
-                    LOGGER.error("Failed to record SCM polling", e);
-                }
-                return false;
+                return true;
             }
 
             public void run() {
@@ -110,11 +80,9 @@ public class GitHubPushTrigger extends Trigger<Job<?, ?>> implements GitHubTrigg
                         LOGGER.warn("Failed to parse the polling log", e);
                         cause = new GitHubPushCause(pushBy);
                     }
-                    if (asParameterizedJobMixIn(job).scheduleBuild(cause)) {
-                        LOGGER.info("SCM changes detected in " + job.getName() + ". Triggering " + name);
-                    } else {
-                        LOGGER.info("SCM changes detected in " + job.getName() + ". Job is already in the queue");
-                    }
+                    Integer quietPeriod = new Integer(0);
+                    QueueTaskFuture queue = asParameterizedJobMixIn(job).scheduleBuild2(quietPeriod,
+                        new ParametersAction(values));
                 }
             }
         });

@@ -8,6 +8,8 @@ import com.cloudbees.jenkins.GitHubWebHook;
 import com.coravy.hudson.plugins.github.GithubProjectProperty;
 import hudson.Extension;
 import hudson.model.Job;
+import hudson.model.ParameterValue;
+import hudson.model.StringParameterValue;
 import hudson.security.ACL;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
@@ -20,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
 
 import static com.google.common.collect.Sets.immutableEnumSet;
 import static org.jenkinsci.plugins.github.util.JobInfoHelpers.triggerFrom;
@@ -88,6 +91,10 @@ public class DefaultPushGHEventSubscriber extends GHEventsSubscriber {
         String repoUrl = json.getJSONObject("repository").getString("url");
         final String pusherName = json.getJSONObject("pusher").getString("name");
 
+        final String commitSha = json.getString("after");
+        final ArrayList<ParameterValue> values = new ArrayList<ParameterValue>();
+        values.add(new StringParameterValue("sha1", commitSha));
+
         LOGGER.info("Received POST for {}", repoUrl);
         Matcher matcher = REPOSITORY_NAME_PATTERN.matcher(repoUrl);
         if (matcher.matches()) {
@@ -117,7 +124,8 @@ public class DefaultPushGHEventSubscriber extends GHEventsSubscriber {
                                     || checkCommitPaths(job.getProperty(GithubProjectProperty.class)
                                         .getRepositoryPath(), commits)) {
                                     LOGGER.info("Poked {}", job.getFullDisplayName());
-                                    trigger.onPost(pusherName);
+                                    LOGGER.info("sha1 set to {}", commitSha);
+                                    trigger.onPost(pusherName, values);
                                 } else {
                                     LOGGER.debug("Skipped {} because job name wasn't found in paths.",
                                         job.getFullDisplayName());
