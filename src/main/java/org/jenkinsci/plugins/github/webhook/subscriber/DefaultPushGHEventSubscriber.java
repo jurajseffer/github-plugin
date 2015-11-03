@@ -113,16 +113,27 @@ public class DefaultPushGHEventSubscriber extends GHEventsSubscriber {
                     for (Job<?, ?> job : Jenkins.getInstance().getAllItems(Job.class)) {
                         GitHubTrigger trigger = triggerFrom(job, GitHubPushTrigger.class);
                         if (trigger != null) {
-                            LOGGER.debug("Considering to poke {}", job.getFullDisplayName());
+                            LOGGER.info("Considering to poke {}", job.getFullDisplayName());
                             if (GitHubRepositoryNameContributor.parseAssociatedNames(job).contains(changedRepository)) {
+
+                                if (job.getProperty(GithubProjectProperty.class).getIgnoreMasterPush() != null
+                                    && job.getProperty(GithubProjectProperty.class).getIgnoreMasterPush()) {
+                                    if (json.getString("ref").equals("refs/heads/master")) {
+                                        LOGGER.info("Ignoring project because ignoreMasterPush is enabled"
+                                                + " and master was pushed");
+                                        continue;
+                                    }
+                                }
+
                                 final JSONArray commits = json.getJSONArray("commits");
                                 if (job.getProperty(GithubProjectProperty.class) == null
                                     || (job.getProperty(GithubProjectProperty.class) != null
                                         && (job.getProperty(GithubProjectProperty.class).getRepositoryPath() == null
-                                        || job.getProperty(GithubProjectProperty.class).getRepositoryPath() == "")
+                                        || job.getProperty(GithubProjectProperty.class).getRepositoryPath().equals(""))
                                     )
                                     || checkCommitPaths(job.getProperty(GithubProjectProperty.class)
-                                        .getRepositoryPath(), commits)) {
+                                        .getRepositoryPath(),
+                                        commits)) {
                                     LOGGER.info("Poked {}", job.getFullDisplayName());
                                     LOGGER.info("sha1 set to {}", commitSha);
                                     trigger.onPost(pusherName, values);

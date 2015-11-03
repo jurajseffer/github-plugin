@@ -1,5 +1,6 @@
 package com.cloudbees.jenkins;
 
+import com.coravy.hudson.plugins.github.GithubProjectProperty;
 import com.google.common.base.Charsets;
 import hudson.Extension;
 import hudson.Util;
@@ -11,9 +12,10 @@ import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.ParametersAction;
 import hudson.model.Project;
-import hudson.model.queue.QueueTaskFuture;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
+import hudson.model.queue.QueueTaskFuture;
+import hudson.util.StreamTaskListener;
 import hudson.util.SequentialExecutionQueue;
 import jenkins.model.Jenkins;
 import jenkins.model.Jenkins.MasterComputer;
@@ -37,6 +39,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
+import java.io.PrintStream;
+import java.text.DateFormat;
+import java.util.Date;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.jenkinsci.plugins.github.util.JobInfoHelpers.asParameterizedJobMixIn;
@@ -67,11 +72,48 @@ public class GitHubPushTrigger extends Trigger<Job<?, ?>> implements GitHubTrigg
         final String pushBy = triggeredByUser;
         getDescriptor().queue.execute(new Runnable() {
             private boolean runPolling() {
-                return true;
+                LOGGER.info("Entered SCM polling decision making for " + job.getName());
+                if (job.getProperty(GithubProjectProperty.class) == null
+                    || !job.getProperty(GithubProjectProperty.class).getEnablePolling()) {
+                    LOGGER.info("Skipping Git SCM polling for " + job.getName());
+                    return true;
+                } else {
+                    try {
+                        StreamTaskListener listener = new StreamTaskListener(getLogFile());
+
+                        try {
+                            PrintStream logger = listener.getLogger();
+                            long start = System.currentTimeMillis();
+                            logger.println("Started on " + DateFormat.getDateTimeInstance().format(new Date()));
+                            boolean result = SCMTriggerItems.asSCMTriggerItem(job).poll(listener).hasChanges();
+                            logger.println("Done. Took " + Util.getTimeSpanString(System.currentTimeMillis() - start));
+                            if (result) {
+                                logger.println("Changes found");
+                            } else {
+                                logger.println("No changes");
+                            }
+                            return result;
+                        } catch (Error e) {
+                            e.printStackTrace(listener.error("Failed to record SCM polling"));
+                            LOGGER.error("Failed to record SCM polling", e);
+                            throw e;
+                        } catch (RuntimeException e) {
+                            e.printStackTrace(listener.error("Failed to record SCM polling"));
+                            LOGGER.error("Failed to record SCM polling", e);
+                            throw e;
+                        } finally {
+                            listener.close();
+                        }
+                    } catch (IOException e) {
+                        LOGGER.error("Failed to record SCM polling", e);
+                    }
+                    return false;
+                }
             }
 
             public void run() {
                 if (runPolling()) {
+                    LOGGER.info("Entered run stage for " + job.getName());
                     String name = " #" + job.getNextBuildNumber();
                     GitHubPushCause cause;
                     try {
@@ -80,9 +122,20 @@ public class GitHubPushTrigger extends Trigger<Job<?, ?>> implements GitHubTrigg
                         LOGGER.warn("Failed to parse the polling log", e);
                         cause = new GitHubPushCause(pushBy);
                     }
-                    Integer quietPeriod = new Integer(0);
-                    QueueTaskFuture queue = asParameterizedJobMixIn(job).scheduleBuild2(quietPeriod,
-                        new ParametersAction(values));
+
+                    if (job.getProperty(GithubProjectProperty.class) == null
+                        || !job.getProperty(GithubProjectProperty.class).getEnablePolling()) {
+                        Integer quietPeriod = new Integer(0);
+                        LOGGER.info("Adding a build with parameters for " + job.getName());
+                        QueueTaskFuture queue = asParameterizedJobMixIn(job).scheduleBuild2(quietPeriod,
+                            new ParametersAction(values));
+                    } else {
+                        if (asParameterizedJobMixIn(job).scheduleBuild(cause)) {
+                            LOGGER.info("SCM changes detected in " + job.getName() + ". Triggering " + name);
+                        } else {
+                            LOGGER.info("SCM changes detected in " + job.getName() + ". Job is already in the queue");
+                        }
+                    }
                 }
             }
         });

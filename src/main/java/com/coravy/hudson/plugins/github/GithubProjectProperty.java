@@ -35,10 +35,23 @@ public final class GithubProjectProperty extends JobProperty<AbstractProject<?, 
      */
     private String repositoryPath;
 
+    /**
+     * Whether or not plugin should poll using Git SCM after an incoming push
+     */
+    private Boolean enablePolling;
+
+    /**
+     * Won't trigger a build if incoming Github push is for master branch
+     */
+    private Boolean ignoreMasterPush;
+
     @DataBoundConstructor
-    public GithubProjectProperty(String projectUrl, String repositoryPath) {
+    public GithubProjectProperty(String projectUrl, String repositoryPath,
+        Boolean enablePolling, Boolean ignoreMasterPush) {
         this.projectUrl = new GithubUrl(projectUrl).baseUrl();
         this.repositoryPath = repositoryPath;
+        this.enablePolling = enablePolling;
+        this.ignoreMasterPush = ignoreMasterPush;
     }
 
     /**
@@ -50,6 +63,14 @@ public final class GithubProjectProperty extends JobProperty<AbstractProject<?, 
 
     public String getRepositoryPath() {
         return repositoryPath;
+    }
+
+    public Boolean getEnablePolling() {
+        return enablePolling;
+    }
+
+    public Boolean getIgnoreMasterPush() {
+        return ignoreMasterPush;
     }
 
     @Override
