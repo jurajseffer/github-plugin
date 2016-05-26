@@ -45,13 +45,19 @@ public final class GithubProjectProperty extends JobProperty<AbstractProject<?, 
      */
     private Boolean ignoreMasterPush;
 
+    /**
+     * Will trigger a build only if incoming Github push is for master branch
+     */
+    private Boolean onlyMasterPush;
+
     @DataBoundConstructor
     public GithubProjectProperty(String projectUrl, String repositoryPath,
-        Boolean enablePolling, Boolean ignoreMasterPush) {
+        Boolean enablePolling, Boolean ignoreMasterPush, Boolean onlyMasterPush) {
         this.projectUrl = new GithubUrl(projectUrl).baseUrl();
         this.repositoryPath = repositoryPath;
         this.enablePolling = enablePolling;
         this.ignoreMasterPush = ignoreMasterPush;
+        this.onlyMasterPush = onlyMasterPush;
     }
 
     /**
@@ -71,6 +77,10 @@ public final class GithubProjectProperty extends JobProperty<AbstractProject<?, 
 
     public Boolean getIgnoreMasterPush() {
         return ignoreMasterPush;
+    }
+
+    public Boolean getOnlyMasterPush() {
+        return onlyMasterPush;
     }
 
     @Override

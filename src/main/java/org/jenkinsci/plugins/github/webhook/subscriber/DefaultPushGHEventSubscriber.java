@@ -125,6 +125,15 @@ public class DefaultPushGHEventSubscriber extends GHEventsSubscriber {
                                     }
                                 }
 
+                                if (job.getProperty(GithubProjectProperty.class).getOnlyMasterPush() != null
+                                    && job.getProperty(GithubProjectProperty.class).getOnlyMasterPush()) {
+                                    if (!json.getString("ref").equals("refs/heads/master")) {
+                                        LOGGER.info("Ignoring because getOnlyMasterPush is enabled"
+                                                + " and " + json.getString("ref") + " pushed");
+                                        continue;
+                                    }
+                                }
+
                                 final JSONArray commits = json.getJSONArray("commits");
                                 if (job.getProperty(GithubProjectProperty.class) == null
                                     || (job.getProperty(GithubProjectProperty.class) != null
